@@ -1,0 +1,429 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LA Dog Parks Explorer</title>
+
+  <script type="module" src="https://js.arcgis.com/5.1/"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f7f7f0;
+      color: #243d32;
+    }
+
+    header {
+      background: #e4eddf;
+      text-align: center;
+      padding: 35px 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 34px;
+      color: #315b45;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      margin-top: 12px;
+      color: #627565;
+    }
+
+    main {
+      max-width: 1200px;
+      margin: 25px auto;
+      padding: 0 20px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 18px;
+      background: white;
+      border-radius: 14px;
+      margin-bottom: 15px;
+      align-items: center;
+    }
+
+    input, select, button {
+      padding: 12px;
+      border: 1px solid #c8d5c8;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    input {
+      flex: 1;
+      min-width: 180px;
+    }
+
+    button {
+      background: #315b45;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #48775b;
+    }
+
+    #status {
+      width: 100%;
+      color: #627565;
+      font-size: 14px;
+      margin: 0;
+    }
+
+    .map-container {
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.12);
+      background: white;
+    }
+
+    arcgis-map {
+      display: block;
+      height: 70vh;
+      min-height: 450px;
+    }
+
+    .about {
+      background: white;
+      margin-top: 25px;
+      padding: 25px;
+      border-radius: 14px;
+      line-height: 1.7;
+    }
+
+    .about h2 {
+      color: #315b45;
+      margin-top: 0;
+    }
+
+    a {
+      color: #315b45;
+    }
+
+    footer {
+      text-align: center;
+      padding: 25px;
+      color: #777;
+      font-size: 13px;
+    }
+
+    @media (max-width: 600px) {
+      header {
+        padding: 24px 12px;
+      }
+
+      h1 {
+        font-size: 25px;
+      }
+
+      .subtitle {
+        font-size: 14px;
+      }
+
+      main {
+        padding: 0 12px;
+        margin: 15px auto;
+      }
+
+      .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      input, select, button {
+        width: 100%;
+        font-size: 16px;
+      }
+
+      arcgis-map {
+        height: 55vh;
+        min-height: 350px;
+      }
+
+      .about {
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <h1>🐾 LA Dog Parks Explorer</h1>
+    <p class="subtitle">
+      Discover dog-friendly parks across Los Angeles County
+    </p>
+  </header>
+
+  <main>
+
+    <div class="toolbar">
+
+      <input
+        type="search"
+        id="parkSearch"
+        placeholder="Search by park name..."
+        aria-label="Search by park name">
+
+      <select id="restroomFilter" aria-label="Restroom filter">
+        <option value="all">All dog parks</option>
+        <option value="yes">With restrooms</option>
+      </select>
+
+      <button id="searchButton" disabled>Search</button>
+      <button id="resetButton" disabled>Reset</button>
+
+      <p id="status" aria-live="polite">Loading dog parks...</p>
+
+    </div>
+
+    <div class="map-container">
+
+      <arcgis-map
+        basemap="streets-vector"
+        center="-118.35,34.05"
+        zoom="9">
+
+        <arcgis-home slot="top-left"></arcgis-home>
+        <arcgis-legend slot="bottom-left"></arcgis-legend>
+
+      </arcgis-map>
+
+    </div>
+
+    <section class="about">
+
+      <h2>About This Map</h2>
+
+      <p>
+        LA Dog Parks Explorer helps dog owners find parks
+        with dog park facilities across Los Angeles County.
+        Users can explore park locations, search by park name,
+        and filter parks with restrooms.
+      </p>
+
+      <h2>What's New in Project 5?</h2>
+
+      <ul>
+        <li>Search dog parks by name.</li>
+        <li>Filter parks with restroom facilities.</li>
+        <li>Display the number of matching parks.</li>
+        <li>Improved mobile-friendly layout.</li>
+      </ul>
+
+      <p>
+        <strong>Data Source:</strong>
+        <a href="https://services.arcgis.com/RmCCgQtiZLDCtblq/ArcGIS/rest/services/Countywide_Parks_and_Open_Space__(Public_-_Hosted2)/FeatureServer/0"
+           target="_blank" rel="noopener">
+          LA County Parks and Open Space
+        </a>
+      </p>
+
+    </section>
+
+  </main>
+
+  <footer>
+    SSCI 591 Web GIS | Project 5 | USC
+  </footer>
+
+  <script type="module">
+
+    const status = document.getElementById("status");
+
+    try {
+
+      const FeatureLayer = await $arcgis.import(
+        "@arcgis/core/layers/FeatureLayer.js"
+      );
+
+      const dogParks = new FeatureLayer({
+
+        url: "https://services.arcgis.com/RmCCgQtiZLDCtblq/ArcGIS/rest/services/Countywide_Parks_and_Open_Space__(Public_-_Hosted2)/FeatureServer/0",
+
+        title: "Dog Parks in Los Angeles County",
+
+        definitionExpression: "DGPRK > 0",
+
+        renderer: {
+          type: "simple",
+          symbol: {
+            type: "simple-fill",
+            color: [105, 160, 110, 0.55],
+            outline: {
+              color: [45, 100, 60],
+              width: 1.5
+            }
+          }
+        },
+
+        popupTemplate: {
+          title: "{PARK_NAME}",
+          content: [{
+            type: "fields",
+            fieldInfos: [
+              {
+                fieldName: "ADDRESS",
+                label: "Address"
+              },
+              {
+                fieldName: "DGPRK",
+                label: "Number of Dog Parks"
+              },
+              {
+                fieldName: "RSTRM",
+                label: "Restrooms"
+              }
+            ]
+          }]
+        }
+
+      });
+
+      const viewElement =
+        document.querySelector("arcgis-map");
+
+      await viewElement.viewOnReady();
+
+      viewElement.map.add(dogParks);
+
+      await dogParks.load();
+
+      const searchInput =
+        document.getElementById("parkSearch");
+
+      const restroomFilter =
+        document.getElementById("restroomFilter");
+
+      const searchButton =
+        document.getElementById("searchButton");
+
+      const resetButton =
+        document.getElementById("resetButton");
+
+      async function filterParks(zoomToResults = true) {
+
+        status.textContent = "Searching...";
+
+        let where = "DGPRK > 0";
+
+        const searchText = searchInput.value.trim()
+          .replace(/'/g, "''")
+          .toUpperCase();
+
+        if (searchText) {
+          where +=
+            " AND UPPER(PARK_NAME) LIKE '%" +
+            searchText + "%'";
+        }
+
+        if (restroomFilter.value === "yes") {
+          where += " AND RSTRM > 0";
+        }
+
+        dogParks.definitionExpression = where;
+
+        try {
+
+          const query = dogParks.createQuery();
+
+          const count =
+            await dogParks.queryFeatureCount(query);
+
+          status.textContent =
+            count + " matching dog parks found.";
+
+          if (count === 0) {
+            status.textContent =
+              "No parks found. Try another search.";
+            return;
+          }
+
+          if (zoomToResults) {
+
+            const result =
+              await dogParks.queryExtent(query);
+
+            if (result.extent) {
+              await viewElement.goTo(
+                result.extent.expand(1.3)
+              );
+            }
+
+          }
+
+        } catch (error) {
+
+          status.textContent =
+            "Unable to complete the search. Please try again.";
+
+          console.error(error);
+
+        }
+
+      }
+
+      searchButton.addEventListener(
+        "click", () => filterParks()
+      );
+
+      searchInput.addEventListener(
+        "keydown", (event) => {
+          if (event.key === "Enter") {
+            filterParks();
+          }
+        }
+      );
+
+      restroomFilter.addEventListener(
+        "change", () => filterParks()
+      );
+
+      resetButton.addEventListener("click", async () => {
+
+        searchInput.value = "";
+
+        restroomFilter.value = "all";
+
+        await filterParks(false);
+
+        await viewElement.goTo({
+          center: [-118.35, 34.05],
+          zoom: 9
+        });
+
+      });
+
+      searchButton.disabled = false;
+      resetButton.disabled = false;
+
+      await filterParks(false);
+
+    } catch (error) {
+
+      status.textContent =
+        "The map could not be loaded. Please refresh.";
+
+      console.error(error);
+
+    }
+
+  </script>
+
+</body>
+</html>

@@ -158,6 +158,33 @@
         padding: 18px;
       }
     }
+    .mobile-legend {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  arcgis-legend {
+    display: none;
+  }
+
+  .mobile-legend {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: white;
+    font-size: 13px;
+    color: #315b45;
+  }
+
+  .legend-symbol {
+    width: 16px;
+    height: 16px;
+    background: #a5c7a5;
+    border: 2px solid #315b45;
+    border-radius: 3px;
+  }
+}
   </style>
 </head>
 
@@ -201,8 +228,11 @@
 
         <arcgis-home slot="top-left"></arcgis-home>
         <arcgis-legend slot="bottom-left"></arcgis-legend>
-
-      </arcgis-map>
+</arcgis-map>
+    <div class="mobile-legend">
+  <span class="legend-symbol"></span>
+  Dog Parks in Los Angeles County
+</div>
 
     </div>
 
